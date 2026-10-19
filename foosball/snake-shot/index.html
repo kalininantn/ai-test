@@ -5,7 +5,7 @@
 </style></head><body><main class="app">
 <div class="tabs"><button data-mode="both">Оба</button><button data-mode="square" class="active">Square</button><button data-mode="spray">Spray</button></div>
 <svg id="field" viewBox="0 0 360 305" aria-label="Интерактивная схема ударов"><rect x="12" y="12" width="336" height="281" rx="7" fill="#176b4a"/><g id="lines"></g><g id="rays"></g><g id="goal"></g><g id="players"></g></svg>
-<div class="legend"><span><i class="swatch" style="background:#a8f4bf"></i>Проходит</span><span><i class="swatch" style="background:#ffaaaa"></i>Не проходит</span><span id="one"><i class="swatch" style="background:#f9d57b"></i>Один способ</span></div>
+<div class="legend"><span id="one"><i class="swatch" style="background:#f9d57b"></i>Один способ</span></div>
 <div class="stats"><div class="stat"><small>Square · открыто</small><strong id="sq">—</strong></div><div class="stat"><small>Spray · открыто</small><strong id="sp">—</strong></div></div>
 <div class="controls">
 <div class="control"><div class="head"><span>Позиция мяча (тап)</span><b id="tapv">3.0</b></div><input id="tap" type="range" min="1" max="5" step="0.5" value="3"><div class="marks"><span>5 · слева</span><span>3 · центр</span><span>1 · справа</span></div></div>
