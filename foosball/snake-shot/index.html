@@ -11,7 +11,7 @@
 <div class="control"><div class="head"><span>Позиция мяча (тап)</span><b id="tapv">3.0</b></div><input id="tap" type="range" min="1" max="5" step="0.5" value="3"><div class="marks"><span>5 · слева</span><span>3 · центр</span><span>1 · справа</span></div></div>
 <div class="control"><div class="head"><span>Вратарь</span><b id="keeperv">-1.5</b></div><input id="keeper" type="range" min="-2.4" max="2.4" step="0.1" value="-1.5"></div>
 <div class="control"><div class="head"><span>Защитник (двойка)</span><b id="defenderv">1.5</b></div><input id="defender" type="range" min="-2.4" max="2.4" step="0.1" value="1.5"></div>
-</div><button class="reset" id="reset">↻ Сбросить</button><p class="note">Ворота — 5,8 диаметра мяча. Мяч и фигурки имеют ширину 1 диаметр. Касание допускается. Square: зелёная область — доступный коридор, жёлтая пунктирная стрелка — продольное перемещение мяча, белая вертикальная стрелка — прямой удар, ярко-зелёные линии — крайние допустимые траектории. Spray: границы коридоров строятся по касательным к защитникам и штангам. Положение ползунка мяча соответствует его положению на поле.</p></main>
+</div><button class="reset" id="reset">↻ Сбросить</button><p class="note">Ворота — 5,8 диаметра мяча. Мяч и фигурки имеют ширину 1 диаметр. Касание допускается. Square: зелёная область — доступный коридор, жёлтая пунктирная стрелка перед мячом — продольное перемещение, белая вертикальная стрелка — прямой удар, ярко-зелёные линии — крайние допустимые траектории. Spray: границы коридоров строятся по касательным к защитникам и штангам. Положение ползунка мяча соответствует его положению на поле.</p></main>
 <script>
 (()=>{'use strict';const NS='http://www.w3.org/2000/svg',S=42,gy=70,dy=167,sy=264,goalY=19,left=-2.9,right=2.9,minC=-2.4,maxC=2.4,n=241,eps=1e-8;let mode='square';const $=id=>document.getElementById(id),px=v=>180+v*S;
 function node(tag,attrs,parent){let e=document.createElementNS(NS,tag);for(let [k,v] of Object.entries(attrs))e.setAttribute(k,v);parent.appendChild(e);return e}function clear(el){el.replaceChildren()}
@@ -26,22 +26,22 @@ if(mode!=='spray'){
  const valid=gaps.filter(([a,b])=>b>=a-eps);
  for(const [a,b] of valid){
   const l=Math.max(left,a-.5),r=Math.min(right,b+.5);
-  node('rect',{x:px(l),y:goalY,width:Math.max(0,px(r)-px(l)),height:sy-goalY,fill:'#a8f4bf','fill-opacity':mode==='square'?.4:.13},rays);
+  node('rect',{x:px(l),y:goalY,width:Math.max(0,px(r)-px(l)),height:sy-goalY,fill:'#a8f4bf','fill-opacity': .4},rays);
  }
- for(const l of lanes)if(!l.sq)node('line',{x1:l.tx,y1:sy,x2:l.tx,y2:l.qd?dy:l.qg?gy:goalY,stroke:'#ffaaaa','stroke-opacity':mode==='square'?.13:.06,'stroke-width':'.65'},rays);
+ for(const l of lanes)if(!l.sq)node('line',{x1:l.tx,y1:sy,x2:l.tx,y2:l.qd?dy:l.qg?gy:goalY,stroke:'#ffaaaa','stroke-opacity':.13,'stroke-width':'.65'},rays);
  // Exact limiting trajectories: ball edges touch posts or defending figures.
  for(const [a,b] of valid){
-  for(const t of [a,b])node('line',{x1:px(t),y1:sy,x2:px(t),y2:goalY,stroke:'#72ffc0','stroke-opacity':mode==='square'?.88:.45,'stroke-width':'1.4'},rays);
+  for(const t of [a,b])node('line',{x1:px(t),y1:sy,x2:px(t),y2:goalY,stroke:'#72ffc0','stroke-opacity':.88,'stroke-width':'1.4'},rays);
  }
  // A two-part shot guide for every corridor: move the ball laterally,
  // then shoot straight toward the goal.
- if(mode==='square')for(const [a,b] of valid){
-  const target=(a+b)/2,x=px(target),travelY=sy+24;
+ for(const [a,b] of valid){
+  const target=(a+b)/2,x=px(target),travelY=sy-25;
   if(Math.abs(x-ballX)>3){
    node('line',{x1:ballX,y1:travelY,x2:x,y2:travelY,stroke:'#ffe18a','stroke-width':'2.2','stroke-dasharray':'5 4','stroke-linecap':'round'},rays);
    const dir=Math.sign(x-ballX);
    node('polygon',{points:[[x,travelY],[x-dir*9,travelY-4.5],[x-dir*9,travelY+4.5]].map(p=>p.join(',')).join(' '),fill:'#ffe18a'},rays);
-   node('line',{x1:x,y1:travelY-3,x2:x,y2:sy+2,stroke:'#ffe18a','stroke-width':'1','stroke-dasharray':'2 3','stroke-opacity':'.7'},rays);
+   node('line',{x1:x,y1:travelY+3,x2:x,y2:sy-2,stroke:'#ffe18a','stroke-width':'1','stroke-dasharray':'2 3','stroke-opacity':'.7'},rays);
   }
   node('line',{x1:x,y1:sy-2,x2:x,y2:goalY+9,stroke:'#f9fdf4','stroke-width':'2.3','stroke-linecap':'round'},rays);
   node('polygon',{points:[[x,goalY+2],[x-5,goalY+13],[x+5,goalY+13]].map(p=>p.join(',')).join(' '),fill:'#f9fdf4'},rays);
@@ -75,7 +75,7 @@ for(const [a,b] of intervals){
  // sample rays. At each depth the footprint extends half a ball on both sides.
  const pts=[[ballX-S/2,sy],[ballX+S/2,sy],[px(b)+S/2,goalY],[px(a)-S/2,goalY]]
    .map(p=>p.join(',')).join(' ');
- node('polygon',{points:pts,fill:'#a8f4bf','fill-opacity':mode==='both'?.22:.49},painted);
+ node('polygon',{points:pts,fill:'#a8f4bf','fill-opacity':.49},painted);
  // Strong, crisp boundaries make even narrow open corridors readable.
  for(const t of [a,b])node('line',{x1:ballX,y1:sy,x2:px(t),y2:goalY,stroke:'#72ffc0','stroke-opacity':'.95','stroke-width':'1.35'},painted);
 }
