@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Snake Shot V2 — реальные размеры стола</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color-scheme:dark;background:#101b20;color:#eaf2f0}*{box-sizing:border-box}body{margin:0;padding:18px 12px 40px}.app{max-width:600px;margin:auto;border:1px solid #3b5355;border-radius:18px;padding:14px;background:#17292e}header{display:flex;justify-content:space-between;align-items:center;gap:10px}h1{font-size:19px;margin:0}.sub{font-size:11px;color:#b7c9c6}.tabs{display:flex;gap:4px;background:#0e1c20;padding:4px;border-radius:11px;margin:14px 0}.tabs button{flex:1;border:0;border-radius:8px;padding:11px 6px;background:transparent;color:#b7c9c6;font-weight:650}.tabs button.active{background:#365559;color:#fff}svg{width:100%;display:block}.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;margin:12px 0}.swatch{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px}.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.stat{background:#22373c;border-radius:11px;padding:12px}.stat small{color:#bed0cc}.stat strong{display:block;font-size:25px;margin-top:3px}.controls{padding:10px 28px 12px;display:grid;gap:20px}.control .head{display:flex;justify-content:space-between;font-size:14px;margin-bottom:8px}.control input{width:100%;accent-color:#a5dfc2;touch-action:pan-x;cursor:pointer}.marks{display:flex;justify-content:space-between;color:#adbfbf;font-size:11px;margin-top:3px}.button-row{display:flex;gap:10px}.button-row button{flex:1;min-width:0}.reset{width:100%;padding:13px;border:1px solid #67817f;border-radius:10px;background:transparent;color:#eaf2f0;font-size:14px;cursor:pointer}.note{font-size:12px;color:#b4c6c2;line-height:1.5;margin:14px 2px 0}button{cursor:pointer}@media(max-width:360px){.controls{padding-left:24px;padding-right:24px}h1{font-size:16px}}
+</style></head><body><main class="app">
+
+<svg id="field" viewBox="0 0 270 305" aria-label="Интерактивная схема ударов"><rect x="5" y="12" width="260" height="281" rx="7" fill="#176b4a"/><g id="lines"></g><g id="rays"></g><g id="goal"></g><g id="players"></g></svg>
+
+
+<div class="controls">
+<div class="control"><div class="head"><span>Позиция мяча (тап)</span><b id="tapv">1.5</b></div><input id="tap" type="range" min="1" max="5" step="0.5" value="4.5"><div class="marks"><span>5 · слева</span><span>3 · центр</span><span>1 · справа</span></div></div>
+<div class="control"><div class="head"><span>Вратарь</span><b id="keeperv">-1.5</b></div><input id="keeper" type="range" min="-2.4" max="2.4" step="0.1" value="-1.5"></div>
+<div class="control"><div class="head"><span>Защитник (двойка)</span><b id="defenderv">1.5</b></div><input id="defender" type="range" min="-2.4" max="2.4" step="0.1" value="1.5"></div>
+</div><div class="button-row"><button class="reset" id="reset">↻ Сбросить</button><button class="reset" id="switch">⇄ Свитч</button></div>
+<div class="stats"><div class="stat"><small>Square · открыто</small><strong id="sq">—</strong></div><div class="stat"><small>Spray · открыто</small><strong id="sp">—</strong></div></div>
+<div class="tabs"><button data-mode="both" class="active">Оба</button><button data-mode="square">Square</button><button data-mode="spray">Spray</button></div><p class="note">Версия 2: ворота 21 см, мяч 3,5 см, фигурка 2,5 см. От ворот: вратарь 3,5 см, двойка 18,5 см, мяч в пин-позиции 29 см (ось тройки — 33,5 см). Касание допускается. Наклон ±5 см и вторая фигурка двойки (23,5 см между центрами) сохранены в замерах, но пока не участвуют в расчёте. Square: зелёная область — доступный коридор, жёлтая пунктирная стрелка перед мячом — продольное перемещение, белая вертикальная стрелка — прямой удар, ярко-зелёные линии — крайние допустимые траектории. Spray: границы коридоров строятся по касательным к защитникам и штангам. Положение ползунка мяча соответствует его положению на поле.</p><p class="note"><a href="../" style="color:#a8f4bf">← Версия 1 (условная геометрия)</a> · <a href="../table-measurements.md" style="color:#a8f4bf">Исходные замеры</a></p></main>
+<script>
+(()=>{'use strict';const NS='http://www.w3.org/2000/svg',goalY=19,sy=264,S=(sy-goalY)/29*3.5,gy=goalY+(sy-goalY)*3.5/29,dy=goalY+(sy-goalY)*18.5/29,left=-3,right=3,minC=-2.5,maxC=2.5,hit=(2.5+3.5)/(2*3.5),n=251,eps=1e-8;let mode='both';const $=id=>document.getElementById(id),px=v=>135+v*S;
+function node(tag,attrs,parent){let e=document.createElementNS(NS,tag);for(let [k,v] of Object.entries(attrs))e.setAttribute(k,v);parent.appendChild(e);return e}function clear(el){el.replaceChildren()}
+function draw(){const tap=6-Number($('tap').value),keeper=Number($('keeper').value),defender=Number($('defender').value),ballPos=(3-tap)*1.2,ballX=px(ballPos);$('tapv').textContent=tap.toFixed(1);$('keeperv').textContent=keeper.toFixed(1);$('defenderv').textContent=defender.toFixed(1);document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));const lines=$('lines'),rays=$('rays'),goal=$('goal'),players=$('players');[lines,rays,goal,players].forEach(clear);
+node('rect',{x:px(left),y:8,width:(right-left)*S,height:9,rx:2,fill:'#d7e0e8'},lines);for(let y of [gy,dy])node('line',{x1:5,x2:265,y1:y,y2:y,stroke:'#fff','stroke-opacity':'.23','stroke-dasharray':'4 4'},lines);
+const lanes=Array.from({length:n},(_,i)=>{let t=minC+i*(maxC-minC)/(n-1),tx=px(t),g=ballPos+(t-ballPos)*(sy-gy)/(sy-goalY),d=ballPos+(t-ballPos)*(sy-dy)/(sy-goalY),qg=Math.abs(t-keeper)<hit-eps,qd=Math.abs(t-defender)<hit-eps,pg=Math.abs(g-keeper)<hit-eps,pd=Math.abs(d-defender)<hit-eps;return{t,tx,qg,qd,pg,pd,sq:!qg&&!qd,sp:!pg&&!pd}});
+if(mode!=='spray'){
+ const blocks=[[keeper-hit,keeper+hit],[defender-hit,defender+hit]].sort((a,b)=>a[0]-b[0]);
+ let cursor=minC,gaps=[];
+ for(const [a,b] of blocks){if(a>cursor+eps)gaps.push([cursor,Math.min(a,maxC)]);cursor=Math.max(cursor,b)}
+ if(cursor<maxC-eps)gaps.push([cursor,maxC]);
+ const valid=gaps.filter(([a,b])=>b>=a-eps);
+ for(const [a,b] of valid){
+  const l=Math.max(left,a-.5),r=Math.min(right,b+.5);
+  node('rect',{x:px(l),y:goalY,width:Math.max(0,px(r)-px(l)),height:sy-goalY,fill:'#a8f4bf','fill-opacity': .4},rays);
+ }
+ for(const l of lanes)if(!l.sq)node('line',{x1:l.tx,y1:sy,x2:l.tx,y2:l.qd?dy:l.qg?gy:goalY,stroke:'#ffaaaa','stroke-opacity':.13,'stroke-width':'.65'},rays);
+ // Exact limiting trajectories: ball edges touch posts or defending figures.
+ for(const [a,b] of valid){
+  for(const t of [a,b])node('line',{x1:px(t),y1:sy,x2:px(t),y2:goalY,stroke:'#72ffc0','stroke-opacity':.88,'stroke-width':'1.4'},rays);
+ }
+ // A two-part shot guide for every corridor: move the ball laterally,
+ // then shoot straight toward the goal.
+ for(const [a,b] of valid){
+  const target=(a+b)/2,x=px(target),travelY=sy-25;
+  if(Math.abs(x-ballX)>3){
+   node('line',{x1:ballX,y1:travelY,x2:x,y2:travelY,stroke:'#ffe18a','stroke-width':'2.2','stroke-dasharray':'5 4','stroke-linecap':'round'},rays);
+   const dir=Math.sign(x-ballX);
+   node('polygon',{points:[[x,travelY],[x-dir*9,travelY-4.5],[x-dir*9,travelY+4.5]].map(p=>p.join(',')).join(' '),fill:'#ffe18a'},rays);
+   node('line',{x1:x,y1:travelY+3,x2:x,y2:sy-2,stroke:'#ffe18a','stroke-width':'1','stroke-dasharray':'2 3','stroke-opacity':'.7'},rays);
+  }
+  node('line',{x1:x,y1:sy-2,x2:x,y2:goalY+9,stroke:'#f9fdf4','stroke-width':'2.3','stroke-linecap':'round'},rays);
+  node('polygon',{points:[[x,goalY+2],[x-5,goalY+13],[x+5,goalY+13]].map(p=>p.join(',')).join(' '),fill:'#f9fdf4'},rays);
+  node('circle',{cx:x,cy:sy,r:3.5,fill:'#ffe18a',stroke:'#fff','stroke-width':'1'},rays);
+ }
+}
+if(mode!=='square'){
+// Exact open intervals of goal-center positions. Boundary rays are tangent
+// to a defender or post; unlike sampling, arbitrarily narrow gaps remain visible.
+const cuts=[minC,maxC];
+for(const [p,y] of [[keeper,gy],[defender,dy]]){
+ const alpha=(sy-y)/(sy-goalY);
+ for(const edge of [p-hit,p+hit]){
+  const t=(edge-ballPos*(1-alpha))/alpha;
+  if(t>minC&&t<maxC)cuts.push(t);
+ }
+}
+cuts.sort((a,b)=>a-b);
+const intervals=[];
+for(let i=0;i<cuts.length-1;i++){
+ const a=cuts[i],b=cuts[i+1],mid=(a+b)/2;
+ if(b-a<1e-9)continue;
+ const at=y=>ballPos+(mid-ballPos)*(sy-y)/(sy-goalY);
+ if(Math.abs(at(gy)-keeper)>=hit-eps&&Math.abs(at(dy)-defender)>=hit-eps)intervals.push([a,b]);
+}
+const defs=node('defs',{},rays),clip=node('clipPath',{id:'spray-goal-clip'},defs);
+node('rect',{x:px(left),y:goalY,width:px(right)-px(left),height:sy-goalY},clip);
+const painted=node('g',{'clip-path':'url(#spray-goal-clip)'},rays);
+for(const [a,b] of intervals){
+ // A corridor is bounded by the two tangent shot lines, not by individual
+ // sample rays. At each depth the footprint extends half a ball on both sides.
+ const pts=[[ballX-S/2,sy],[ballX+S/2,sy],[px(b)+S/2,goalY],[px(a)-S/2,goalY]]
+   .map(p=>p.join(',')).join(' ');
+ node('polygon',{points:pts,fill:'#a8f4bf','fill-opacity':.49},painted);
+ // Strong, crisp boundaries make even narrow open corridors readable.
+ for(const t of [a,b])node('line',{x1:ballX,y1:sy,x2:px(t),y2:goalY,stroke:'#72ffc0','stroke-opacity':'.95','stroke-width':'1.35'},painted);
+}
+// Show obstruction edges as thin red tangent rays, without red triangular fills.
+for(const [p,y] of [[keeper,gy],[defender,dy]]){
+ const alpha=(sy-y)/(sy-goalY);
+ for(const edge of [p-hit,p+hit]){
+  const t=(edge-ballPos*(1-alpha))/alpha;
+  if(t>=minC&&t<=maxC)node('line',{x1:ballX,y1:sy,x2:px(t),y2:y,stroke:'#ff817c','stroke-opacity':'.85','stroke-width':'1'},rays);
+ }
+}
+}
+for(const l of lanes){const color=mode==='square'?(l.sq?'#a8f4bf':'#ffaaaa'):mode==='spray'?(l.sp?'#a8f4bf':'#ffaaaa'):l.sq&&l.sp?'#a8f4bf':l.sq||l.sp?'#f9d57b':'#ffaaaa';node('rect',{x:l.tx-.48,y:8,width:.96,height:9,fill:color},goal)}
+node('rect',{x:px(left)-7,y:8,width:7,height:25,rx:2,fill:'#f9fafb',stroke:'#526575'},players);node('rect',{x:px(right),y:8,width:7,height:25,rx:2,fill:'#f9fafb',stroke:'#526575'},players);
+node('rect',{x:px(keeper)-S*2.5/7,y:gy-8,width:S*2.5/3.5,height:16,rx:4,fill:'#f4a24e',stroke:'#fff','stroke-width':1.3},players);node('rect',{x:px(defender)-S*2.5/7,y:dy-8,width:S*2.5/3.5,height:16,rx:4,fill:'#85b9f2',stroke:'#fff','stroke-width':1.3},players);node('circle',{cx:ballX,cy:sy,r:S*.4,fill:'#ffe0a0',stroke:'#fff','stroke-width':1.6},players);node('circle',{cx:ballX-5,cy:sy-6,r:3.2,fill:'#fff','fill-opacity':'.45'},players);for(const [label,y] of [['Вратарь',gy-15],['Двойка',dy-15],['Тройка',sy-15]]){const t=node('text',{x:20,y,fill:'#fff','font-size':10},players);t.textContent=label}
+$('sq').textContent=Math.round(lanes.filter(l=>l.sq).length/n*100)+'%';$('sp').textContent=Math.round(lanes.filter(l=>l.sp).length/n*100)+'%'}
+for(const id of ['tap','keeper','defender'])$(id).addEventListener('input',draw);document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.mode;draw()}));$('reset').addEventListener('click',()=>{mode='both';$('tap').value=4.5;$('keeper').value=-1.5;$('defender').value=1.5;draw()});$('switch').addEventListener('click',()=>{const k=Number($('keeper').value),d=Number($('defender').value);$('keeper').value=(-k).toFixed(1);$('defender').value=(-d).toFixed(1);draw()});draw()})();
+</script></body></html>
